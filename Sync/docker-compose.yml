@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: collabuser
+      POSTGRES_PASSWORD: collabpass
+      POSTGRES_DB: collabdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: unless-stopped
+    networks:
+      - collab-network
+
+  backend:
+    build: ./backend
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+    environment:
+      DATABASE_URL: postgres://collabuser:collabpass@postgres:5432/collabdb?sslmode=disable
+    restart: unless-stopped
+    networks:
+      - collab-network
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - collab-network
+
+networks:
+  collab-network:
+    driver: bridge
+
+volumes:
+  postgres_data:

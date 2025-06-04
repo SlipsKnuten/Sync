@@ -1,0 +1,60 @@
+.cursor {
+    position: absolute;
+    pointer-events: none;
+    z-index: 10;
+    transition: left 0.1s, top 0.1s;
+}
+
+.cursor-label {
+    font-size: 12px;
+    padding: 2px 4px;
+    margin-left: 6px;
+    border-radius: 3px;
+    white-space: nowrap;
+    display: inline-block;
+    opacity: 0.9;
+    border: 1px solid rgba(0,0,0,0.1);
+
+    /* Add this line */
+    transform: translateY(-7px); /* Negative value moves it up */
+}
+
+/* Your own cursor label is slightly transparent */
+.cursor.own-cursor .cursor-label {
+    opacity: 0.7;
+}
+
+#editor-container {
+    position: relative;
+}
+
+#editor {
+    white-space: pre-wrap;
+    word-break: break-word;
+    outline: none;
+    line-height: 1.5;
+    /* Keep the default cursor visible */
+}
+
+/* Show a thin line before the username tag for better visibility */
+.cursor::before {
+    content: '';
+    position: absolute;
+    left: 0px;
+    top: 0;
+    width: 2px;
+    height: 1.2em;
+    background-color: currentColor;
+}
+
+/* Hide scrollbar for cursor container */
+#cursors {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    overflow: visible; /* Changed from hidden to visible */
+    z-index: 100; /* Ensure it's on top */
+}

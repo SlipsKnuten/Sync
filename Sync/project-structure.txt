@@ -1,0 +1,32 @@
+.
+├── backend
+│   ├── cmd
+│   │   └── server
+│   │       └── main.go
+│   ├── Dockerfile
+│   ├── go.mod
+│   ├── go.sum
+│   └── internal
+│       ├── client
+│       │   └── client.go
+│       ├── hub
+│       │   └── hub.go
+│       └── message
+│           └── message.go
+├── docker-compose.yml
+├── frontend
+│   ├── Dockerfile
+│   ├── nginx.conf
+│   └── src
+│       ├── css
+│       │   └── styles.css
+│       ├── editor.html
+│       ├── index.html
+│       └── js
+│           ├── cursor.js
+│           ├── editor.js
+│           ├── main.js
+│           └── websocket.js
+└── project-structure.txt
+
+12 directories, 18 files

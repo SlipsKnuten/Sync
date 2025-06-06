@@ -33,6 +33,15 @@
     let editor;
     let wsManager;
 
+    // Get authentication token
+    const token = localStorage.getItem('token');
+    const user = localStorage.getItem('user');
+    let dbUserId = null;
+    if (user) {
+        const userData = JSON.parse(user);
+        dbUserId = userData.id;
+    }
+
     // DOM elements
     const editorElement = document.getElementById('editor');
     const editorContainer = document.getElementById('editor-container');
@@ -71,7 +80,9 @@
             userId,
             sessionCode,
             handleMessage,
-            handleStatusChange
+            handleStatusChange,
+            token,
+            dbUserId
         );
 
         // Setup scroll handler

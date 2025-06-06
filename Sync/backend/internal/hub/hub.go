@@ -289,6 +289,10 @@ func ServeWS(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	// Store the database user ID if authenticated
 	if dbUserID > 0 {
 		session.setUserID(userID, dbUserID)
+		// Create initial user-session association
+		if err := session.db.SaveDocument(sessionCode, session.document, &dbUserID); err != nil {
+			log.Printf("Failed to create initial user-session association: %v", err)
+		}
 	}
 
 	c := client.New(session, conn, userID, session.getNextColor())

@@ -1,27 +1,25 @@
 class WebSocketManager {
-    constructor(userId, sessionCode, onMessage, onStatusChange) {
+    constructor(userId, sessionCode, onMessage, onStatusChange, token = null, dbUserId = null) {
         this.userId = userId;
         this.sessionCode = sessionCode;
         this.onMessage = onMessage;
         this.onStatusChange = onStatusChange;
+        this.token = token;
+        this.dbUserId = dbUserId;
         this.ws = null;
         this.reconnectTimeout = null;
     }
 
     connect() {
-        // Get authentication token if available
-        const token = localStorage.getItem('token');
-        
-        // Use relative URL to work with any host
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        let wsUrl = `${protocol}//${window.location.hostname}:8080/ws?userId=${this.userId}&session=${this.sessionCode}`;
-        
-        // Add token to query string if user is authenticated
-        if (token) {
-            wsUrl += `&token=${encodeURIComponent(token)}`;
+        let url = `ws://localhost:8080/ws?session=${this.sessionCode}&userId=${this.userId}`;
+        if (this.token) {
+            url += `&token=${this.token}`;
         }
-        
-        this.ws = new WebSocket(wsUrl);
+        if (this.dbUserId) {
+            url += `&dbUserId=${this.dbUserId}`;
+        }
+
+        this.ws = new WebSocket(url);
         
         this.ws.onopen = () => {
             if (this.onStatusChange) {

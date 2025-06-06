@@ -6,48 +6,73 @@ function checkAuth() {
     const token = localStorage.getItem('token');
     const user = localStorage.getItem('user');
     
+    // Only update UI elements if they exist (for pages that have them)
+    const authButtons = document.getElementById('authButtons');
+    const userInfo = document.getElementById('userInfo');
+    const username = document.getElementById('username');
+    
     if (token && user) {
         const userData = JSON.parse(user);
-        document.getElementById('authButtons').classList.add('hidden');
-        document.getElementById('userInfo').classList.remove('hidden');
-        document.getElementById('userInfo').classList.add('flex');
-        document.getElementById('username').textContent = userData.username;
+        if (authButtons) authButtons.classList.add('hidden');
+        if (userInfo) {
+            userInfo.classList.remove('hidden');
+            userInfo.classList.add('flex');
+        }
+        if (username) username.textContent = userData.username;
     } else {
-        document.getElementById('authButtons').classList.remove('hidden');
-        document.getElementById('userInfo').classList.add('hidden');
+        if (authButtons) authButtons.classList.remove('hidden');
+        if (userInfo) userInfo.classList.add('hidden');
     }
 }
 
 // Modal functions
 function showLoginModal() {
-    document.getElementById('loginModal').classList.remove('hidden');
-    document.getElementById('loginModal').classList.add('flex');
+    const loginModal = document.getElementById('loginModal');
+    if (loginModal) {
+        loginModal.classList.remove('hidden');
+        loginModal.classList.add('flex');
+    }
 }
 
 function hideLoginModal() {
-    document.getElementById('loginModal').classList.add('hidden');
-    document.getElementById('loginError').classList.add('hidden');
-    document.getElementById('loginForm').reset();
+    const loginModal = document.getElementById('loginModal');
+    const loginError = document.getElementById('loginError');
+    const loginForm = document.getElementById('loginForm');
+    
+    if (loginModal) loginModal.classList.add('hidden');
+    if (loginError) loginError.classList.add('hidden');
+    if (loginForm) loginForm.reset();
 }
 
 function showRegisterModal() {
-    document.getElementById('registerModal').classList.remove('hidden');
-    document.getElementById('registerModal').classList.add('flex');
+    const registerModal = document.getElementById('registerModal');
+    if (registerModal) {
+        registerModal.classList.remove('hidden');
+        registerModal.classList.add('flex');
+    }
 }
 
 function hideRegisterModal() {
-    document.getElementById('registerModal').classList.add('hidden');
-    document.getElementById('registerError').classList.add('hidden');
-    document.getElementById('registerForm').reset();
+    const registerModal = document.getElementById('registerModal');
+    const registerError = document.getElementById('registerError');
+    const registerForm = document.getElementById('registerForm');
+    
+    if (registerModal) registerModal.classList.add('hidden');
+    if (registerError) registerError.classList.add('hidden');
+    if (registerForm) registerForm.reset();
 }
 
 function showSessionsModal() {
-    document.getElementById('sessionsModal').classList.remove('hidden');
-    document.getElementById('sessionsModal').classList.add('flex');
+    const sessionsModal = document.getElementById('sessionsModal');
+    if (sessionsModal) {
+        sessionsModal.classList.remove('hidden');
+        sessionsModal.classList.add('flex');
+    }
 }
 
 function hideSessionsModal() {
-    document.getElementById('sessionsModal').classList.add('hidden');
+    const sessionsModal = document.getElementById('sessionsModal');
+    if (sessionsModal) sessionsModal.classList.add('hidden');
 }
 
 // Login form handler

@@ -221,17 +221,38 @@ func (db *Database) GetUserSessions(userID int) ([]Session, error) {
 				content,
 				ROW_NUMBER() OVER(PARTITION BY session_id ORDER BY version DESC) as rn
 			FROM documents
+		),
+		UserSessions AS (
+			SELECT DISTINCT 
+				es.id, 
+				es.session_code, 
+				COALESCE(ld.content, '') as content, 
+				es.last_modified
+			FROM editing_sessions es
+			LEFT JOIN LatestDocuments ld ON es.id = ld.session_id AND ld.rn = 1
+			WHERE es.id IN (
+				SELECT session_id FROM user_sessions WHERE user_id = $1
+				UNION
+				SELECT session_id FROM documents d
+				JOIN editing_sessions es2 ON d.session_id = es2.id
+				WHERE d.created_at IN (
+					SELECT MIN(created_at) 
+					FROM documents 
+					WHERE session_id = d.session_id
+				)
+				AND d.created_at IN (
+					SELECT created_at 
+					FROM documents 
+					WHERE session_id = d.session_id 
+					ORDER BY created_at ASC 
+					LIMIT 1
+				)
+			)
 		)
-        SELECT es.id, es.session_code, COALESCE(ld.content, ''), es.last_modified
-        FROM user_sessions us
-        JOIN editing_sessions es ON us.session_id = es.id
-        LEFT JOIN LatestDocuments ld ON es.id = ld.session_id AND ld.rn = 1
-        WHERE us.user_id = $1
-        ORDER BY us.last_seen DESC
+		SELECT id, session_code, content, last_modified
+		FROM UserSessions
+		ORDER BY last_modified DESC
     `, userID)
-	// Note: Modified this query to more reliably get the LATEST document content using a CTE with ROW_NUMBER().
-	// Your original LEFT JOIN documents d ON es.id = d.session_id could potentially return multiple rows per session if a session had multiple document versions,
-	// which would then lead to Scan errors or incorrect data.
 
 	if err != nil {
 		return nil, err
@@ -246,7 +267,7 @@ func (db *Database) GetUserSessions(userID int) ([]Session, error) {
 		}
 		sessions = append(sessions, session)
 	}
-	if err = rows.Err(); err != nil { // Check for errors during iteration
+	if err = rows.Err(); err != nil {
 		return nil, err
 	}
 

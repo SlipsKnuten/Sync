@@ -7,6 +7,8 @@ import (
 
 	"collab-editor/internal/auth"
 	"collab-editor/internal/db"
+	"collab-editor/internal/document"
+	"collab-editor/internal/export"
 	"collab-editor/internal/hub"
 )
 
@@ -43,6 +45,15 @@ func main() {
 	}
 	authHandler := auth.NewAuthHandler(database, jwtSecret)
 
+	// Set auth handler in hub
+	h.SetAuthHandler(authHandler)
+
+	// Initialize export handler
+	exportHandler := export.NewExportHandler(database)
+
+	// Initialize document handler
+	documentHandler := document.NewDocumentHandler(database, authHandler)
+
 	// Routes
 	http.HandleFunc("/ws", enableCORS(func(w http.ResponseWriter, r *http.Request) {
 		hub.ServeWS(h, w, r)
@@ -51,6 +62,8 @@ func main() {
 	http.HandleFunc("/api/register", enableCORS(authHandler.Register))
 	http.HandleFunc("/api/login", enableCORS(authHandler.Login))
 	http.HandleFunc("/api/sessions", enableCORS(authHandler.GetUserSessions))
+	http.HandleFunc("/api/export", enableCORS(exportHandler.ExportDocument))
+	http.HandleFunc("/api/document/save", enableCORS(documentHandler.SaveDocument))
 
 	log.Println("Server starting on :8080")
 	if err := http.ListenAndServe(":8080", nil); err != nil {

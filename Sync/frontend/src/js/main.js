@@ -81,6 +81,9 @@
 
         // Connect to server
         wsManager.connect();
+        
+        // Save the editor instance globally for access in other functions
+        window.editorInstance = editor;
     }
 
     // Handle incoming messages
@@ -167,6 +170,22 @@
     function removeUserBadge(userId) {
         const badge = document.getElementById(`user-${userId}`);
         if (badge) badge.remove();
+    }
+
+    // Add handler for the leave session link
+    const leaveLink = document.querySelector('a[href="index.html"]');
+    if (leaveLink) {
+        leaveLink.addEventListener('click', async (e) => {
+            // If user is authenticated and has made changes, save before leaving
+            if (window.editorInstance && localStorage.getItem('token')) {
+                e.preventDefault();
+                await window.editorInstance.saveNow();
+                // Wait a bit to ensure save completes
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 500);
+            }
+        });
     }
 
     // Start the application

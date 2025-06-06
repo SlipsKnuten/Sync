@@ -9,9 +9,18 @@ class WebSocketManager {
     }
 
     connect() {
+        // Get authentication token if available
+        const token = localStorage.getItem('token');
+        
         // Use relative URL to work with any host
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${protocol}//${window.location.hostname}:8080/ws?userId=${this.userId}&session=${this.sessionCode}`;
+        let wsUrl = `${protocol}//${window.location.hostname}:8080/ws?userId=${this.userId}&session=${this.sessionCode}`;
+        
+        // Add token to query string if user is authenticated
+        if (token) {
+            wsUrl += `&token=${encodeURIComponent(token)}`;
+        }
+        
         this.ws = new WebSocket(wsUrl);
         
         this.ws.onopen = () => {

@@ -3,9 +3,11 @@ package hub
 import (
 	"log"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
+	"collab-editor/internal/auth"
 	"collab-editor/internal/client"
 	"collab-editor/internal/db"
 	"collab-editor/internal/message"
@@ -34,12 +36,15 @@ type Session struct {
 	lastSave    time.Time
 	saveTimer   *time.Timer
 	db          *db.Database
+	userIDs     map[string]int // Map of client UserID to database user ID
+	userIDMutex sync.RWMutex
 }
 
 type Hub struct {
 	sessions map[string]*Session
 	mutex    sync.RWMutex
 	db       *db.Database
+	auth     *auth.AuthHandler
 }
 
 func New(database *db.Database) *Hub {
@@ -47,6 +52,10 @@ func New(database *db.Database) *Hub {
 		sessions: make(map[string]*Session),
 		db:       database,
 	}
+}
+
+func (h *Hub) SetAuthHandler(authHandler *auth.AuthHandler) {
+	h.auth = authHandler
 }
 
 func (h *Hub) GetOrCreateSession(sessionCode string) *Session {
@@ -74,6 +83,7 @@ func (h *Hub) GetOrCreateSession(sessionCode string) *Session {
 		colorIndex:  0,
 		db:          h.db,
 		lastSave:    time.Now(),
+		userIDs:     make(map[string]int),
 	}
 
 	h.sessions[sessionCode] = session
@@ -90,6 +100,23 @@ func (s *Session) getNextColor() string {
 	return color
 }
 
+func (s *Session) setUserID(clientUserID string, dbUserID int) {
+	s.userIDMutex.Lock()
+	defer s.userIDMutex.Unlock()
+	if dbUserID > 0 {
+		s.userIDs[clientUserID] = dbUserID
+	}
+}
+
+func (s *Session) getUserID(clientUserID string) *int {
+	s.userIDMutex.RLock()
+	defer s.userIDMutex.RUnlock()
+	if id, exists := s.userIDs[clientUserID]; exists && id > 0 {
+		return &id
+	}
+	return nil
+}
+
 func (s *Session) scheduleSave() {
 	if s.saveTimer != nil {
 		s.saveTimer.Stop()
@@ -100,10 +127,21 @@ func (s *Session) scheduleSave() {
 		content := s.document
 		s.mutex.RUnlock()
 
-		if err := s.db.SaveDocument(s.sessionCode, content, nil); err != nil {
+		// Try to get any authenticated user ID from the session
+		var userID *int
+		s.userIDMutex.RLock()
+		for _, id := range s.userIDs {
+			if id > 0 {
+				userID = &id
+				break
+			}
+		}
+		s.userIDMutex.RUnlock()
+
+		if err := s.db.SaveDocument(s.sessionCode, content, userID); err != nil {
 			log.Printf("Failed to save document: %v", err)
 		} else {
-			log.Printf("Document saved for session %s", s.sessionCode)
+			log.Printf("Document saved for session %s (userID: %v)", s.sessionCode, userID)
 		}
 	})
 }
@@ -157,6 +195,11 @@ func (s *Session) run() {
 			if _, ok := s.clients[c]; ok {
 				delete(s.clients, c)
 				close(c.Send)
+
+				// Remove user ID mapping
+				s.userIDMutex.Lock()
+				delete(s.userIDs, c.UserID)
+				s.userIDMutex.Unlock()
 
 				// Notify others about user leaving
 				for existingClient := range s.clients {
@@ -223,7 +266,31 @@ func ServeWS(hub *Hub, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Try to authenticate the user if a token is provided
+	var dbUserID int
+	token := r.URL.Query().Get("token")
+	if token == "" {
+		// Try to get token from Authorization header
+		authHeader := r.Header.Get("Authorization")
+		if authHeader != "" {
+			token = strings.TrimPrefix(authHeader, "Bearer ")
+		}
+	}
+
+	if token != "" && hub.auth != nil {
+		if id, err := hub.auth.ValidateToken(token); err == nil {
+			dbUserID = id
+			log.Printf("Authenticated user ID %d for WebSocket connection", dbUserID)
+		}
+	}
+
 	session := hub.GetOrCreateSession(sessionCode)
+	
+	// Store the database user ID if authenticated
+	if dbUserID > 0 {
+		session.setUserID(userID, dbUserID)
+	}
+
 	c := client.New(session, conn, userID, session.getNextColor())
 	session.Register(c)
 
